@@ -41,6 +41,20 @@ android {
 
 dependencies {
 
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.firestore.ktx)
+
+    // Coil for image loading
+    implementation(libs.coil.compose)
+
+    // Retrofit for API calls
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+
+    implementation(libs.androidx.material.icons.extended)
+
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

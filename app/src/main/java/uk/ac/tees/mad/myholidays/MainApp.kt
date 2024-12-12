@@ -1,4 +1,4 @@
-package uk.ac.tees.mad.myholidays.screens
+package uk.ac.tees.mad.myholidays
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,8 +17,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
 import kotlinx.coroutines.delay
-import uk.ac.tees.mad.myholidays.R
+import uk.ac.tees.mad.myholidays.screens.AuthScreen
 
 @Composable
 fun SplashScreen(
@@ -60,6 +62,8 @@ fun SplashScreen(
 @Composable
 fun MainApp() {
     var showSplashScreen by remember { mutableStateOf(true) }
+    var startDes by remember { mutableStateOf("auth") }
+
 
     if (showSplashScreen) {
         SplashScreen(
@@ -72,14 +76,27 @@ fun MainApp() {
             val navController = rememberNavController()
             NavHost(
                 navController = navController,
-                startDestination = "login",
+                startDestination = startDes,
                 modifier = Modifier.padding(innerPadding)
             ) {
-                composable("home") {
-                    Text("Home")
+                composable("auth") {
+                    AuthScreen(navController)
                 }
-                composable("login") {
-                    Text("Login")
+
+                composable("home") {
+//                    HomeScreen(navController)
+                }
+
+                composable("search") {
+//                    SearchScreen(navController)
+                }
+
+                composable("countdown") {
+//                    CountdownScreen(navController)
+                }
+
+                composable("profile") {
+//                    ProfileScreen(navController)
                 }
 
             }
