@@ -22,6 +22,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.delay
 import uk.ac.tees.mad.myholidays.screens.AuthScreen
+import uk.ac.tees.mad.myholidays.screens.HomeScreen
 
 @Composable
 fun SplashScreen(
@@ -72,34 +73,31 @@ fun MainApp() {
             }
         )
     } else {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            val navController = rememberNavController()
-            NavHost(
-                navController = navController,
-                startDestination = startDes,
-                modifier = Modifier.padding(innerPadding)
-            ) {
-                composable("auth") {
-                    AuthScreen(navController)
-                }
-
-                composable("home") {
-//                    HomeScreen(navController)
-                }
-
-                composable("search") {
-//                    SearchScreen(navController)
-                }
-
-                composable("countdown") {
-//                    CountdownScreen(navController)
-                }
-
-                composable("profile") {
-//                    ProfileScreen(navController)
-                }
-
+        val navController = rememberNavController()
+        NavHost(
+            navController = navController,
+            startDestination = startDes
+        ) {
+            composable("auth") {
+                AuthScreen(navController)
             }
+
+            composable("home") {
+                HomeScreen(navController)
+            }
+
+            composable("search") {
+//                    SearchScreen(navController)
+            }
+
+            composable("countdown") {
+//                    CountdownScreen(navController)
+            }
+
+            composable("profile") {
+//                    ProfileScreen(navController)
+            }
+
         }
     }
 }
