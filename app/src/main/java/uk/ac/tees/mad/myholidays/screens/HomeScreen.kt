@@ -16,21 +16,45 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import uk.ac.tees.mad.myholidays.models.Holiday
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import uk.ac.tees.mad.myholidays.R
+import uk.ac.tees.mad.myholidays.utils.LocationService
+import uk.ac.tees.mad.myholidays.viewmodels.HomeViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun HomeScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: HomeViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val locationPermission =
+        rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION) {
+            if (it) {
+                viewModel.fetchLocation(LocationService(context))
+            }
+        }
+
+    val locationService = LocationService(context)
+    LaunchedEffect(Unit) {
+        if (locationPermission.status.isGranted) {
+            viewModel.fetchLocation(locationService)
+        } else {
+            locationPermission.launchPermissionRequest()
+        }
+    }
     // Dummy data
     val holidays = remember {
         listOf(
@@ -44,14 +68,14 @@ fun HomeScreen(
             Holiday(
                 id = "2",
                 name = "Independence Day",
-                date = LocalDate.of(2024, 7, 4),
+                date = LocalDate.of(2025, 7, 4),
                 country = "United States",
                 imageUrl = "https://example.com/independence-day.jpg"
             ),
             Holiday(
                 id = "3",
                 name = "Diwali",
-                date = LocalDate.of(2024, 10, 31),
+                date = LocalDate.of(2025, 10, 31),
                 country = "India",
                 imageUrl = "https://example.com/diwali.jpg"
             )
