@@ -7,5 +7,7 @@ data class Holiday(
     val name: String,
     val date: LocalDate,
     val country: String,
+    val description: String? = null,
+    val type: String? = null,
     val imageUrl: String? = null
 )
