@@ -30,6 +30,8 @@ import uk.ac.tees.mad.myholidays.models.Holiday
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import uk.ac.tees.mad.myholidays.R
+import uk.ac.tees.mad.myholidays.models.HolidaysState
+import uk.ac.tees.mad.myholidays.models.LocationResult
 import uk.ac.tees.mad.myholidays.utils.LocationService
 import uk.ac.tees.mad.myholidays.viewmodels.HomeViewModel
 
@@ -37,8 +39,14 @@ import uk.ac.tees.mad.myholidays.viewmodels.HomeViewModel
 @Composable
 fun HomeScreen(
     navController: NavController,
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = viewModel(),
 ) {
+    val holidaysState by viewModel.holidaysState.collectAsState()
+    val locationState by viewModel.locationState.collectAsState()
+    val selectedCountry by viewModel.selectedCountry.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     val context = LocalContext.current
     val locationPermission =
         rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION) {
@@ -55,62 +63,31 @@ fun HomeScreen(
             locationPermission.launchPermissionRequest()
         }
     }
-    // Dummy data
-    val holidays = remember {
-        listOf(
-            Holiday(
-                id = "1",
-                name = "Christmas",
-                date = LocalDate.of(2024, 12, 25),
-                country = "Global",
-                imageUrl = "https://example.com/christmas.jpg"
-            ),
-            Holiday(
-                id = "2",
-                name = "Independence Day",
-                date = LocalDate.of(2025, 7, 4),
-                country = "United States",
-                imageUrl = "https://example.com/independence-day.jpg"
-            ),
-            Holiday(
-                id = "3",
-                name = "Diwali",
-                date = LocalDate.of(2025, 10, 31),
-                country = "India",
-                imageUrl = "https://example.com/diwali.jpg"
+
+    LaunchedEffect(locationState is LocationResult.Error) {
+        if (locationState != null) {
+            snackbarHostState.showSnackbar(
+                message = (locationState as? LocationResult.Error)?.message ?: "",
+                duration = SnackbarDuration.Short
             )
-        )
+        }
     }
 
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("MyHolidays") },
                 actions = {
+                    IconButton(onClick = { /* TODO: Implement country selection dialog */ }) {
+                        Icon(Icons.Default.Public, contentDescription = "Select Country")
+                    }
                     IconButton(onClick = { navController.navigate("search") }) {
                         Icon(Icons.Default.Search, contentDescription = "Search Holidays")
                     }
-                    IconButton(onClick = { navController.navigate("profile") }) {
-                        Icon(Icons.Default.Person, contentDescription = "Profile")
-                    }
                 }
             )
-        },
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home") },
-                    selected = true,
-                    onClick = {}
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Event, contentDescription = "Countdown") },
-                    label = { Text("Countdown") },
-                    selected = false,
-                    onClick = { navController.navigate("countdown") }
-                )
-            }
         }
     ) { paddingValues ->
         LazyColumn(
@@ -121,30 +98,139 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Text(
-                    text = "Upcoming Holidays",
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(vertical = 16.dp)
+                // Location Information
+                LocationInfoChip(
+                    locationState = locationState,
+                    onRetry = { viewModel.fetchLocation(locationService) }
                 )
             }
 
-            items(holidays) { holiday ->
-                HolidayCard(
-                    holiday = holiday,
-                    onHolidayClick = {
-                        // Navigate to holiday details or countdown
-                        navController.navigate("countdown")
+            // Handle different states of holidays and location
+            when (val state = holidaysState) {
+                is HolidaysState.Loading -> {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
                     }
-                )
+                }
+
+                is HolidaysState.Success -> {
+                    // Holidays Header
+                    item {
+                        Text(
+                            text = "Upcoming Holidays",
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                    }
+
+                    // Holiday List
+                    items(state.holidays) { holiday ->
+                        HolidayCard(
+                            holiday = holiday,
+                            onHolidayClick = {
+                                // Navigate to holiday details
+                                navController.navigate("countdown")
+                            }
+                        )
+                    }
+                }
+
+                is HolidaysState.Error -> {
+                    // Show error with retry option
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Error: ${state.message}",
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(onClick = { viewModel.fetchLocation(locationService) }) {
+                                    Text("Retry")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                is HolidaysState.Initial -> {}
             }
         }
     }
 }
 
 @Composable
+fun LocationInfoChip(
+    locationState: LocationResult?,
+    onRetry: () -> Unit,
+) {
+    when (locationState) {
+        is LocationResult.Success -> {
+            FilterChip(
+                selected = true,
+                onClick = {},
+                label = {
+                    Text("${locationState.countryName} Holidays")
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.LocationOn, contentDescription = "Location")
+                }
+            )
+        }
+
+        is LocationResult.PermissionDenied -> {
+            FilterChip(
+                selected = false,
+                onClick = onRetry,
+                label = { Text("Location Permission Denied") },
+                leadingIcon = {
+                    Icon(Icons.Default.LocationOff, contentDescription = "Location Denied")
+                }
+            )
+        }
+
+        is LocationResult.Error -> {
+            FilterChip(
+                selected = false,
+                onClick = onRetry,
+                label = { Text("Location Error. Tap to Retry") },
+                leadingIcon = {
+                    Icon(Icons.Default.Error, contentDescription = "Location Error")
+                }
+            )
+        }
+
+        null -> {
+            FilterChip(
+                selected = false,
+                onClick = onRetry,
+                label = { Text("Fetching Location...") },
+                leadingIcon = {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+            )
+        }
+    }
+}
+
+
+@Composable
 fun HolidayCard(
     holiday: Holiday,
-    onHolidayClick: (Holiday) -> Unit
+    onHolidayClick: (Holiday) -> Unit,
 ) {
     val daysUntil = ChronoUnit.DAYS.between(LocalDate.now(), holiday.date)
 
@@ -161,14 +247,7 @@ fun HolidayCard(
                 .height(200.dp)
         ) {
             // Holiday Image
-            holiday.imageUrl?.let { url ->
-                AsyncImage(
-                    model = url,
-                    contentDescription = holiday.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } ?: Image(
+            Image(
                 painter = painterResource(id = R.drawable.default_holiday),
                 contentDescription = holiday.name,
                 contentScale = ContentScale.Crop,
@@ -180,7 +259,7 @@ fun HolidayCard(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        Brush.verticalGradient(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
                             colors = listOf(
                                 androidx.compose.ui.graphics.Color.Transparent,
                                 androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.7f)

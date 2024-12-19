@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,7 +19,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.delay
 import uk.ac.tees.mad.myholidays.screens.AuthScreen
@@ -26,7 +26,7 @@ import uk.ac.tees.mad.myholidays.screens.HomeScreen
 
 @Composable
 fun SplashScreen(
-    onSplashScreenFinished: () -> Unit
+    onSplashScreenFinished: () -> Unit,
 ) {
     // State to control the visibility of the splash screen
     var visible by remember { mutableStateOf(true) }
@@ -63,8 +63,13 @@ fun SplashScreen(
 @Composable
 fun MainApp() {
     var showSplashScreen by remember { mutableStateOf(true) }
-    var startDes by remember { mutableStateOf("auth") }
+    var startDes = remember {
+        mutableStateOf("auth")
+    }
 
+    LaunchedEffect(key1 = true) {
+        startDes.value = if (Firebase.auth.currentUser != null) "home" else "auth"
+    }
 
     if (showSplashScreen) {
         SplashScreen(
@@ -76,7 +81,7 @@ fun MainApp() {
         val navController = rememberNavController()
         NavHost(
             navController = navController,
-            startDestination = startDes
+            startDestination = startDes.value
         ) {
             composable("auth") {
                 AuthScreen(navController)

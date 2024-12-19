@@ -4,7 +4,9 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Geocoder
+import android.location.LocationManager
 import androidx.core.app.ActivityCompat
+import androidx.core.location.LocationManagerCompat.isLocationEnabled
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.tasks.await
@@ -17,6 +19,12 @@ class LocationService(private val context: Context) {
         LocationServices.getFusedLocationProviderClient(context)
 
     suspend fun getCurrentLocation(): LocationResult {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        //Check gps
+        if (!isLocationEnabled(locationManager)) {
+            return LocationResult.Error("GPS is disabled")
+        }
+        
         // Check location permissions
         if (ActivityCompat.checkSelfPermission(
                 context,
@@ -30,6 +38,7 @@ class LocationService(private val context: Context) {
             )
             return LocationResult.PermissionDenied
         }
+
 
         return try {
             val location = fusedLocationClient.lastLocation.await()

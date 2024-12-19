@@ -23,6 +23,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import uk.ac.tees.mad.myholidays.R
 
 @Composable
@@ -121,8 +127,45 @@ fun AuthScreen(
                 // Action Button
                 Button(
                     onClick = {
-                        navController.navigate("home") {
-                            popUpTo("auth") { inclusive = true }
+                        val auth = Firebase.auth
+                        if (isLogin) {
+                            // Login logic
+                            if (email.isNotEmpty() && password.isNotEmpty()) {
+                                auth.signInWithEmailAndPassword(email, password)
+                                    .addOnSuccessListener {
+                                        navController.navigate("home") {
+                                            popUpTo("auth") {
+                                                inclusive = true
+                                            }
+                                        }
+                                    }.addOnFailureListener {
+                                        errorMessage = it.localizedMessage
+                                    }
+                            }
+                        } else {
+                            // Register logic
+                            if (email.isNotEmpty() && password.isNotEmpty()) {
+                                auth.createUserWithEmailAndPassword(email, password)
+                                    .addOnSuccessListener {
+                                        Firebase.firestore
+                                            .collection("users").document(email).set(
+                                                hashMapOf(
+                                                    "email" to email
+                                                )
+                                            ).addOnSuccessListener {
+                                                navController.navigate("home") {
+                                                    popUpTo("auth") {
+                                                        inclusive = true
+                                                    }
+                                                }
+                                            }.addOnFailureListener {
+                                                errorMessage = it.localizedMessage
+                                            }
+                                    }.addOnFailureListener {
+                                        errorMessage = it.localizedMessage
+
+                                    }
+                            }
                         }
                     }, modifier = Modifier.fillMaxWidth()
                 ) {

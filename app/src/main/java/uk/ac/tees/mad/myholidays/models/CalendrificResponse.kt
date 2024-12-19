@@ -1,10 +1,8 @@
 package uk.ac.tees.mad.myholidays.models
 
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import com.google.gson.annotations.SerializedName
 import retrofit2.http.GET
 import retrofit2.http.Query
-import com.google.gson.annotations.SerializedName
 
 data class CalendarificResponse(
     @SerializedName("response") val response: HolidayResponse
